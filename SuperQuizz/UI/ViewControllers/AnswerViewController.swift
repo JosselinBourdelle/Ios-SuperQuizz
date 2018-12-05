@@ -40,6 +40,7 @@ class AnswerViewController: UIViewController {
     }
     
     @IBAction func answerButtonWasTapped(_ sender: UIButton) {
+        question.userChoice = sender.titleLabel?.text
         if question.correctAnswer == sender.titleLabel?.text {
             userDidChooseAnswer(isCorrectAnswer: true)
         }

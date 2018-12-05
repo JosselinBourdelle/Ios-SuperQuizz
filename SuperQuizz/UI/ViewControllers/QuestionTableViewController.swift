@@ -47,8 +47,15 @@ class QuestionTableViewController: UITableViewController {
         
         if(indexPath.row < questions.count){
             str = questions[indexPath.row].title ??  ""
+            if let userAnswer = questions[indexPath.row].userChoice{
+                if userAnswer == questions[indexPath.row].correctAnswer{
+                    cell.backgroundColor = UIColor.green
+                }
+                else {
+                     cell.backgroundColor = UIColor.red
+                }
+            }
         }
-        
         cell.QuestionTitleLabel.text = str
         
         return cell
@@ -62,11 +69,33 @@ class QuestionTableViewController: UITableViewController {
         
         controller.setOnReponseAnswered { (questionAnswered, result) in
             //TODO : Mettre à jour la liste, ou faire un appel reseau, ou mettre à jour la base
+            
+            
             self.navigationController?.popViewController(animated: true)
             self.tableView.reloadData()
         }
         self.show(controller, sender: self)
         
+    }
+    
+    override func tableView(_ tableView: UITableView, editActionsForRowAt indexPath: IndexPath) -> [UITableViewRowAction]? {
+        
+        let editAction = UITableViewRowAction(style: .normal, title: "Edit") { (action, indexpath) in
+            
+            let controller = UIStoryboard(name: "Main", bundle: nil).instantiateViewController(withIdentifier: "CreateOrEditQuestionViewController") as! CreateOrEditQuestionViewController
+            controller.delegate = self
+            controller.questionToEdit = self.questions[indexPath.row]
+            self.present(controller, animated: true, completion: nil)
+            
+        }
+        
+        let deleteAction = UITableViewRowAction(style: .destructive, title: "delete") { (action, indexpath) in
+            //TODO: delete in database
+            
+            self.questions.remove(at: indexPath.row)
+            tableView.reloadData()
+        }
+        return [editAction,deleteAction]
     }
     
     func getListQuestion() -> [Question] {
