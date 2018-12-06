@@ -22,7 +22,14 @@ class QuestionTableViewController: UITableViewController {
         // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
         // self.navigationItem.rightBarButtonItem = self.editButtonItem
         
-        questions = getListQuestion()
+        APIClient.instance.getAllQuestionsFromServer(onSuccess: { (questions) in
+            self.questions = questions
+            DispatchQueue.main.async {
+                 self.tableView.reloadData()
+            }
+        }, onError: { (error) in
+            print(error)
+        })
         
         tableView.register(UINib(nibName: "QuestionTableViewCell", bundle: nil), forCellReuseIdentifier: "QuestionTableViewCell")
     }
@@ -49,10 +56,11 @@ class QuestionTableViewController: UITableViewController {
             str = questions[indexPath.row].title ??  ""
             if let userAnswer = questions[indexPath.row].userChoice{
                 if userAnswer == questions[indexPath.row].correctAnswer{
-                    cell.backgroundColor = UIColor.green
+                    cell.backgroundColor = UIColor(red:0.05, green:0.68, blue:0.41, alpha:1.0)
+                    
                 }
                 else {
-                     cell.backgroundColor = UIColor.red
+                     cell.backgroundColor = UIColor(red:0.93, green:0.26, blue:0.40, alpha:1.0)
                 }
             }
         }
@@ -66,11 +74,15 @@ class QuestionTableViewController: UITableViewController {
         let controller = UIStoryboard.init(name: "Main", bundle: nil).instantiateViewController(withIdentifier: "AnswerViewController") as! AnswerViewController
         controller.question = questions[indexPath.row]
         
+        controller.setOnProgressTimeOut {
+            controller.work?.cancel()
+            self.navigationController?.popViewController(animated: true)
+            self.tableView.reloadData()
+        }
         
         controller.setOnReponseAnswered { (questionAnswered, result) in
             //TODO : Mettre à jour la liste, ou faire un appel reseau, ou mettre à jour la base
-            
-            
+            controller.work?.cancel()
             self.navigationController?.popViewController(animated: true)
             self.tableView.reloadData()
         }
@@ -91,9 +103,16 @@ class QuestionTableViewController: UITableViewController {
         
         let deleteAction = UITableViewRowAction(style: .destructive, title: "delete") { (action, indexpath) in
             //TODO: delete in database
+            APIClient.instance.deleteQuestionToServeur(questionToDelete: self.questions[indexPath.row], onSuccess: { (question) in
+                DispatchQueue.main.async {
+                    self.questions.remove(at: indexPath.row)
+                    self.tableView.reloadData()
+                }
+            }, onError: { (error) in
+                print(error)
+            })
             
-            self.questions.remove(at: indexPath.row)
-            tableView.reloadData()
+            
         }
         return [editAction,deleteAction]
     }
@@ -139,15 +158,37 @@ class QuestionTableViewController: UITableViewController {
 
 extension QuestionTableViewController : CreateOrEditQuestionDelegate {
     func userDidEditQuestion(q: Question) {
-        
-        self.presentedViewController?.dismiss(animated: true, completion: nil)
-        tableView.reloadData()
+        APIClient.instance.updateQuestionToServeur(questionToUpdate: q, onSuccess: { (question) in
+            for i in 0..<self.questions.count {
+                if self.questions[i].idquestion == q.idquestion{
+                    self.questions[i] = q
+                }
+            }
+            DispatchQueue.main.async {
+                self.presentedViewController?.dismiss(animated: true, completion: nil)
+                self.tableView.reloadData()
+            }
+        }) { (error) in
+            print(error)
+        }
     }
     
     func userDidCreateQuestion(q: Question) {
-        questions.append(q)
-        self.presentedViewController?.dismiss(animated: true, completion: nil)
-        tableView.reloadData()
+        APIClient.instance.addQuestionToServeur(questionToAdd: q, onSuccess: { (question) in
+            DispatchQueue.main.async {
+                
+                guard let presentedVC = self.presentedViewController else {
+                    return
+                }
+                self.questions.append(q)
+                presentedVC.modalTransitionStyle = .crossDissolve
+                presentedVC.dismiss(animated: true, completion: nil)
+                self.tableView.reloadData()
+            }
+        }) { (error) in
+            print(error)
+        }
+       
     }
     
     

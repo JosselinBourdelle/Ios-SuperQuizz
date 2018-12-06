@@ -29,6 +29,7 @@ class CreateOrEditQuestionViewController: UIViewController {
     @IBOutlet weak var correctAnswerSwitch2: UISwitch!
     @IBOutlet weak var correctAnswerSwitch3: UISwitch!
     @IBOutlet weak var correctAnswerSwitch4: UISwitch!
+    @IBOutlet weak var okButton: UIButton!
     
     @IBAction func tapSwitches(_ sender: UISwitch) {
         setSwitch(sender: sender)
@@ -65,7 +66,23 @@ class CreateOrEditQuestionViewController: UIViewController {
         
     }
     @IBAction func onOkTapped(_ sender: UIButton) {
-        createOrEditQuestion()
+        
+        okButton.setTitle("", for: .normal)
+        view.bringSubviewToFront(okButton)
+        
+        UIView.animate(withDuration: 0.3, animations: {
+                self.okButton.layer.cornerRadius = self.okButton.frame.width/2
+        }) { (completed) in
+            UIView.animate(withDuration: 0.5, animations: {
+                let frame = self.view.frame
+                self.okButton.frame = CGRect(origin: CGPoint(x: frame.width - frame.height*3, y: -frame.height*3), size: CGSize(width: frame.height*6, height: frame.height*6))
+                
+                self.okButton.layer.cornerRadius = frame.height*3
+            }, completion: { (completed) in
+                 self.createOrEditQuestion()
+            })
+        }
+       
     }
     
     func createOrEditQuestion() {
